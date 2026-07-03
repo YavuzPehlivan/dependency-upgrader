@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.pia.dnext</groupId>
+    <artifactId>dnext-cost-management</artifactId>
+    <version>4.10.0-ca</version> <!-- İçinde -ca geçtiği için kodumuz bunu CA algılamalı -->
+</project>
