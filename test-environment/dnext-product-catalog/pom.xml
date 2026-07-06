@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.pia.dnext</groupId>
+    <artifactId>dnext-product-catalog</artifactId>
+    <version>2.5.0</version> <!-- NON-CA Servis -->
+
+    <dependencies>
+        <!-- Recipe içinde var. Non-CA sürümüne güncellenmeli! (1.0.1) -->
+        <dependency>
+            <groupId>com.pia.dnext</groupId>
+            <artifactId>state-flow-client</artifactId>
+            <version>0.7.8</version>
+        </dependency>
+
+        <!-- Senaryo 1: Harici kütüphane. Dokunulmamalı! -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>33.0.0-jre</version>
+        </dependency>
+    </dependencies>
+</project>

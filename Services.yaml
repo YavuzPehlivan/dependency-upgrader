@@ -1,0 +1,3 @@
+services:
+  dnext-cost-management:
+    serviceType: non-ca
