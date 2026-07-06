@@ -160,7 +160,6 @@ public class DependencyUpdater {
             } else if ("non-ca".equalsIgnoreCase(serviceType)) {
                 targetVersion = match.versions.get("nonCa");
             } else {
-                // FR-10 / AC-9: Tip bilinmiyorsa veya geçersizse CA/Non-CA bağımlılığını atla ve logla
                 warnings.add(artifactId + ": servis tipi bilinmedigi icin atlandi (auto-detect basarisiz)");
                 return;
             }
@@ -174,8 +173,12 @@ public class DependencyUpdater {
         } else {
             if (!targetVersion.equals(currentVersion)) {
                 String blockLine = updatedLines.get(versionLineIdx);
-                String indentation = blockLine.substring(0, blockLine.indexOf("<version>"));
-                updatedLines.set(versionLineIdx, indentation + "<version>" + targetVersion + "</version>");
+
+                // MİMARİ DEVRİM (Bug #1 ve #3 Çözümü): Satırı tamamen silmek yerine sadece versiyon etiketini değiştiriyoruz!
+                String oldTag = "<version>" + currentVersion + "</version>";
+                String newTag = "<version>" + targetVersion + "</version>";
+                updatedLines.set(versionLineIdx, blockLine.replace(oldTag, newTag));
+
                 updatedItems.add(artifactId + ": " + currentVersion + " -> " + targetVersion);
             } else {
                 unchangedItems.add(artifactId + ": zaten güncel (" + currentVersion + ")");
