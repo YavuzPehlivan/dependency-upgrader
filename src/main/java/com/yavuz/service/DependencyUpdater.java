@@ -18,11 +18,10 @@ public class DependencyUpdater {
         List<String> lines = Files.readAllLines(originalPath);
         List<String> updatedLines = new ArrayList<>(lines);
 
-        // Doküman Madde 20 Raporlama Kategorileri
         List<String> updatedItems = new ArrayList<>();
         List<String> skippedItems = new ArrayList<>();
         List<String> unchangedItems = new ArrayList<>();
-        List<String> warnings = new ArrayList<>();
+        List<String> warnings = new ArrayList<>(); // Raporlama için uyarı listesi
 
         Map<String, String> propertiesToUpdate = new HashMap<>();
 
@@ -61,11 +60,12 @@ public class DependencyUpdater {
                 }
             }
 
+            // Çağrı Noktaları Güncellendi: 'warnings' listesi parametre olarak geçiliyor
             if (line.contains("</parent>") && inParent) {
                 inParent = false;
                 DependencyItem match = findMatchingItem(recipe.parentVersions, currentGroupId, currentArtifactId);
                 if (match != null) {
-                    processMatch(match, currentVersion, versionLineIdx, service.serviceType, updatedLines, propertiesToUpdate, updatedItems, unchangedItems, currentArtifactId);
+                    processMatch(match, currentVersion, versionLineIdx, service.serviceType, updatedLines, propertiesToUpdate, updatedItems, unchangedItems, warnings, currentArtifactId);
                 } else if (currentArtifactId != null) {
                     skippedItems.add(currentArtifactId + ": present in service but not found in recipe");
                 }
@@ -82,10 +82,9 @@ public class DependencyUpdater {
                         skippedItems.add(currentArtifactId + ": skipped direct version update because version is managed by BOM or parent.");
                         warnings.add(currentArtifactId + " version is managed by BOM, direct version was not added");
                     } else {
-                        processMatch(match, currentVersion, versionLineIdx, service.serviceType, updatedLines, propertiesToUpdate, updatedItems, unchangedItems, currentArtifactId);
+                        processMatch(match, currentVersion, versionLineIdx, service.serviceType, updatedLines, propertiesToUpdate, updatedItems, unchangedItems, warnings, currentArtifactId);
                     }
                 } else if (currentArtifactId != null) {
-                    // Doküman Örnek Rapor şablonu eşleşmesi
                     skippedItems.add(currentArtifactId + ": present in service but not found in recipe");
                 }
             }
@@ -93,7 +92,7 @@ public class DependencyUpdater {
                 inPlugin = false;
                 DependencyItem match = findMatchingItem(recipe.plugins, currentGroupId, currentArtifactId);
                 if (match != null) {
-                    processMatch(match, currentVersion, versionLineIdx, service.serviceType, updatedLines, propertiesToUpdate, updatedItems, unchangedItems, currentArtifactId);
+                    processMatch(match, currentVersion, versionLineIdx, service.serviceType, updatedLines, propertiesToUpdate, updatedItems, unchangedItems, warnings, currentArtifactId);
                 } else if (currentArtifactId != null) {
                     skippedItems.add(currentArtifactId + ": present in service but not found in recipe");
                 }
@@ -120,7 +119,6 @@ public class DependencyUpdater {
             }
         }
 
-        // Fiziksel yedekleme ve yazma (Yalnızca gerçek modda)
         if (!dryRun) {
             String recipeVer = (recipe.recipeVersion != null) ? recipe.recipeVersion : "unknown-recipe";
             Path backupDir = Paths.get(".backup", recipeVer, service.name);
@@ -131,21 +129,25 @@ public class DependencyUpdater {
             Files.write(originalPath, updatedLines);
         }
 
-        // Tam uyumlu konsol rapor çıktısı
         printServiceReport(service, updatedItems, skippedItems, unchangedItems, warnings, dryRun);
     }
 
+    // Metot İmzasına 'List<String> warnings' eklendi ve güvenli if-else kontrolü sağlandı
     private static void processMatch(DependencyItem match, String currentVersion, int versionLineIdx, String serviceType,
                                      List<String> updatedLines, Map<String, String> propertiesToUpdate,
-                                     List<String> updatedItems, List<String> unchangedItems, String artifactId) {
+                                     List<String> updatedItems, List<String> unchangedItems, List<String> warnings, String artifactId) {
         if (match == null || currentVersion == null) return;
 
         String targetVersion = match.version;
         if (targetVersion == null && match.versions != null) {
             if ("ca".equalsIgnoreCase(serviceType)) {
                 targetVersion = match.versions.get("ca");
-            } else {
+            } else if ("non-ca".equalsIgnoreCase(serviceType)) {
                 targetVersion = match.versions.get("nonCa");
+            } else {
+                // FR-10 / AC-9: Tip bilinmiyorsa veya geçersizse CA/Non-CA bağımlılığını atla ve logla
+                warnings.add(artifactId + ": servis tipi bilinmedigi icin atlandi (auto-detect basarisiz)");
+                return;
             }
         }
 
@@ -161,13 +163,13 @@ public class DependencyUpdater {
                 updatedLines.set(versionLineIdx, indentation + "<version>" + targetVersion + "</version>");
                 updatedItems.add(artifactId + ": " + currentVersion + " -> " + targetVersion);
             } else {
-                // Sürüm zaten hedef sürümle aynıysa Değişmeyenlere ekle[cite: 1]
                 unchangedItems.add(artifactId + ": zaten güncel (" + currentVersion + ")");
             }
         }
     }
 
-    private static String extractTagValue(String line, String tagName) {
+    // Sadece başındaki 'private' kaldırıldı, böylece ServiceDetector bu metodu ortak kullanabilecek
+    static String extractTagValue(String line, String tagName) {
         String openTag = "<" + tagName + ">";
         String closeTag = "</" + tagName + ">";
         if (line.contains(openTag) && line.contains(closeTag)) {

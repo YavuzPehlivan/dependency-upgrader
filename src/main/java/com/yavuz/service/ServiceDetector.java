@@ -1,66 +1,94 @@
 package com.yavuz.service;
 
 import com.yavuz.model.MicroService;
-import java.io.File;
+import com.yavuz.model.DependencyItem;
+import com.yavuz.model.Recipe;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class ServiceDetector {
 
-    // FR-2 ve FR-11: Belirtilen yollardaki pom.xml dosyalarını tarar ve listeler
     public static List<MicroService> discoverServices(String servicePath, String rootPath) throws IOException {
-        List<MicroService> discovered = new ArrayList<>();
+        List<MicroService> discovered = new java.util.ArrayList<>();
 
-        // Senaryo A: Kullanıcı tek bir servis yolu verdiyse
         if (servicePath != null) {
-            Path pomPath = Paths.get(servicePath, "pom.xml");
-            if (Files.exists(pomPath)) {
-                File folder = new File(servicePath);
-                discovered.add(new MicroService(folder.getName(), pomPath.toString()));
+            Path p = Paths.get(servicePath, "pom.xml");
+            if (Files.exists(p)) {
+                discovered.add(new MicroService(Paths.get(servicePath).getFileName().toString(), p.toString()));
             }
-        }
-        // Senaryo B: Kullanıcı çoklu servis taranacak bir kök dizin verdiyse
-        else if (rootPath != null) {
-            Path root = Paths.get(rootPath);
-            if (Files.exists(root)) {
-                // Kök dizinin altındaki ilk seviye klasörleri listeliyoruz
-                Files.list(root).forEach(path -> {
-                    Path pomPath = path.resolve("pom.xml");
-                    if (Files.exists(pomPath)) {
-                        discovered.add(new MicroService(path.getFileName().toString(), pomPath.toString()));
-                    }
-                });
+        } else if (rootPath != null) {
+            // ÇÖZÜM 1: try-with-resources kullanılarak işletim sistemi kaynak sızıntısı engellendi
+            try (Stream<Path> pathStream = Files.walk(Paths.get(rootPath))) {
+                pathStream.filter(path -> path.getFileName().toString().equals("pom.xml"))
+                        .forEach(path -> {
+                            String serviceName = path.getParent().getFileName().toString();
+                            discovered.add(new MicroService(serviceName, path.toString()));
+                        });
             }
         }
         return discovered;
     }
 
-    // FR-9 ve FR-10: Servis tipinin CA mi yoksa Non-CA mi olduğunu belirler
-    public static void determineServiceType(MicroService service, String cliType) {
-        // 1. Öncelik: CLI parametresi ile doğrudan tip girilmişse (Kural 7.1)
+    public static void determineServiceType(MicroService service, String cliType, Recipe recipe) {
+        // 1. Öncelik: CLI parametresi ile doğrudan tip girilmişse (Kural 7.1)[cite: 1]
         if (cliType != null) {
             service.serviceType = cliType.toLowerCase();
             return;
         }
 
-        // 2. Öncelik: Pom.xml dosyasının içindeki versiyondan otomatik tespit (Kural 7.3)
+        // 2. Öncelik: Pom.xml dosyasının içindeki kritik kütüphanelerden akıllı tespit (Kural 7.3)[cite: 1]
         try {
             List<String> lines = Files.readAllLines(Paths.get(service.path));
+            String currentArtifactId = null;
+            boolean hasSplitDependency = false;
+
             for (String line : lines) {
-                // Eğer pom.xml satırlarında -ca ekiyle biten bir sürüm tag'i görürsek
-                if (line.contains("<version>") && line.contains("-ca</version>")) {
-                    service.serviceType = "ca";
-                    return;
+                if (line.contains("<artifactId>")) {
+                    // ÇÖZÜM 2: Ortak metot çağrılarak kod tekrarlama (duplication) uyarısı yok edildi
+                    currentArtifactId = DependencyUpdater.extractTagValue(line, "artifactId");
+                }
+
+                if (line.contains("<version>") && currentArtifactId != null) {
+                    if (isCaNonCaSplitDependency(recipe, currentArtifactId)) {
+                        hasSplitDependency = true;
+                        String version = DependencyUpdater.extractTagValue(line, "version");
+
+                        if (version != null && version.endsWith("-ca")) {
+                            service.serviceType = "ca";
+                            return;
+                        }
+                    }
                 }
             }
-            // Dosya okundu ama -ca suffix'i bulunamadıysa non-ca kabul ediyoruz
-            service.serviceType = "non-ca";
+
+            if (hasSplitDependency) {
+                service.serviceType = "non-ca";
+            } else {
+                service.serviceType = "unknown";
+            }
+
         } catch (IOException e) {
             service.serviceType = "unknown";
         }
+    }
+
+    private static boolean isCaNonCaSplitDependency(Recipe recipe, String artifactId) {
+        if (recipe == null) return false;
+        if (recipe.dependencies != null) {
+            for (DependencyItem item : recipe.dependencies) {
+                if (artifactId.equals(item.artifactId) && item.versions != null) return true;
+            }
+        }
+        if (recipe.dependencyManagement != null) {
+            for (DependencyItem item : recipe.dependencyManagement) {
+                if (artifactId.equals(item.artifactId) && item.versions != null) return true;
+            }
+        }
+        return false;
     }
 }
