@@ -4,6 +4,10 @@ target/
 !**/src/test/**/target/
 .kotlin
 
+# Kurumsal Proje Özel Kalıntıları
+.backup/
+dependency-reduced-pom.xml
+
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml
