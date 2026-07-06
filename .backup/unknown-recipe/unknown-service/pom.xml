@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<project>
+    <dependencies>
+        <dependency>
+            <groupId>com.pia.dnext</groupId>
+            <artifactId>state-flow-client</artifactId>
+            <version>0.8.5</version>
+        </dependency>
+    </dependencies>
+</project>
