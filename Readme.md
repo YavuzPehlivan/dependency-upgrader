@@ -40,7 +40,7 @@ java src/main/java/com/yavuz/Main.java --recipe vulnerability-recipe.yaml --serv
 ```
 
 ### 📊 Örnek Çalışma Çıktısı (Senaryo B - Çoklu Tarama ve Güncelleme Analizi)
-
+```text
 [BAŞARILI] Recipe dosyası başarıyla okundu!
 Recipe Versiyonu: 2026-Q4-vulnerability-fix
 Recipe içindeki toplam dependency sayısı: 3
@@ -84,3 +84,4 @@ Root Path: test-environment
 Service Type: null
 Service Map: null
 Dry Run Modu Aktif mi?: true
+```
