@@ -10,7 +10,7 @@
         <dependency>
             <groupId>com.pia.dnext</groupId>
             <artifactId>state-flow-client</artifactId>
-            <version>0.7.8</version>
+            <version>0.8.1</version>
         </dependency>
 
         <!-- Senaryo 1: Harici kütüphane. Dokunulmamalı! -->

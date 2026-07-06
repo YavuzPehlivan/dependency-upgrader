@@ -5,6 +5,8 @@ import com.yavuz.service.RecipeParser;
 import com.yavuz.service.ServiceMapParser;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class Main {
@@ -14,7 +16,7 @@ public class Main {
         String servicePath = null;
         String rootPath = null;
         String serviceType = null;
-        String serviceMapPath = null; // Isım çakışmasını önlemek için path olarak güncellendi
+        String serviceMapPath = null;
         boolean dryRun = false;
 
         // === ADIM 1: PARAMETRE AYIKLAMA ===
@@ -73,7 +75,7 @@ public class Main {
             return;
         }
 
-        // === ADIM 5.1: SERVICE MAP DOSYASINI PARSE ETME (Eğer parametre geçildiyse) ===
+        // === ADIM 5.1: SERVICE MAP DOSYASINI PARSE ETME ===
         Map<String, Map<String, String>> parsedServiceMap = null;
         if (serviceMapPath != null) {
             try {
@@ -92,25 +94,35 @@ public class Main {
                 System.out.println("Belirtilen konumlarda geçerli bir pom.xml bulunamadı!");
             } else {
                 for (com.yavuz.model.MicroService service : services) {
+                    // DÜZENLEME 1: Her servis için izole çalışan errors listesi döngünün başında ayağa kaldırıldı
+                    List<String> errors = new ArrayList<>();
 
                     try {
-                        // Öncelik Hiyerarşisi Sürücüsü: CLI parametresi > Service Map > Auto-Detect
+                        // Öncelik Hiyerarşisi Sürücüsü
                         String finalType = serviceType;
                         if (finalType == null && parsedServiceMap != null && parsedServiceMap.containsKey(service.name)) {
                             finalType = parsedServiceMap.get(service.name).get("serviceType");
                         }
 
-                        // Servis tipini nihai karar mekanizmasına gönderiyoruz
                         com.yavuz.service.ServiceDetector.determineServiceType(service, finalType, recipe);
 
-                        // === ADIM 5, 6 & 7: ÇALIŞTIRMA, YEDEKLEME VE RAPORLAMA ===
-                        com.yavuz.service.DependencyUpdater.updateService(service, recipe, dryRun);
+                        // DÜZENLEME 2: updateService metoduna dördüncü parametre olarak errors listesi enjekte edildi
+                        com.yavuz.service.DependencyUpdater.updateService(service, recipe, dryRun, errors);
 
                     } catch (Exception e) {
-                        System.out.println("\n==================================================");
-                        System.out.println("[HATA - İZOLE EDİLDİ] Servis İşlenemedi: " + service.name);
-                        System.out.println("Hata Detayı: " + e.getMessage());
-                        System.out.println("==================================================\n");
+                        // DÜZENLEME 3: Ham konsol çıktısı yerine, hata yakalandığında listeye alıp kurumsal rapora yönlendiriyoruz
+                        errors.add("Servis islenirken kritik hata olustu: " + e.getMessage());
+
+                        // Hata durumunda bile şablon bütünlüğünü koruyarak estetik Errors alanını ekrana basıyoruz
+                        com.yavuz.service.DependencyUpdater.printServiceReport(
+                                service,
+                                new ArrayList<>(),
+                                new ArrayList<>(),
+                                new ArrayList<>(),
+                                new ArrayList<>(),
+                                errors,
+                                dryRun
+                        );
                     }
                 }
             }

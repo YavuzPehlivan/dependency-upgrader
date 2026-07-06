@@ -13,7 +13,8 @@ import java.util.*;
 
 public class DependencyUpdater {
 
-    public static void updateService(MicroService service, Recipe recipe, boolean dryRun) throws IOException {
+    // Metot imzasina 'List<String> errors' eklendi, böylece Main.java'dan gelen hatalari tasiyabilecek
+    public static void updateService(MicroService service, Recipe recipe, boolean dryRun, List<String> errors) throws IOException {
         Path originalPath = Paths.get(service.path);
         List<String> lines = Files.readAllLines(originalPath);
         List<String> updatedLines = new ArrayList<>(lines);
@@ -21,13 +22,14 @@ public class DependencyUpdater {
         List<String> updatedItems = new ArrayList<>();
         List<String> skippedItems = new ArrayList<>();
         List<String> unchangedItems = new ArrayList<>();
-        List<String> warnings = new ArrayList<>(); // Raporlama için uyarı listesi
+        List<String> warnings = new ArrayList<>();
 
         Map<String, String> propertiesToUpdate = new HashMap<>();
 
         boolean inParent = false;
         boolean inDependency = false;
         boolean inPlugin = false;
+        boolean inDependencyManagement = false; // CLAUDE ADIM 3: BOM durum takibi başlangıcı
 
         int versionLineIdx = -1;
         String currentGroupId = null;
@@ -36,6 +38,15 @@ public class DependencyUpdater {
 
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
+
+            // CLAUDE ADIM 3: DependencyManagement sınır takibi kuralları
+            if (line.contains("<dependencyManagement>")) inDependencyManagement = true;
+            if (line.contains("</dependencyManagement>")) inDependencyManagement = false;
+
+            // CLAUDE ADIM 5: Tek satırlık kırılgan blok uyarısı mekanizması
+            if (line.contains("<dependency>") && line.contains("</dependency>")) {
+                warnings.add("Tek satirlik dependency tespit edildi, atlanmis olabilir: " + line.trim());
+            }
 
             if (line.contains("<parent>")) {
                 inParent = true;
@@ -60,7 +71,6 @@ public class DependencyUpdater {
                 }
             }
 
-            // Çağrı Noktaları Güncellendi: 'warnings' listesi parametre olarak geçiliyor
             if (line.contains("</parent>") && inParent) {
                 inParent = false;
                 DependencyItem match = findMatchingItem(recipe.parentVersions, currentGroupId, currentArtifactId);
@@ -72,9 +82,13 @@ public class DependencyUpdater {
             }
             else if (line.contains("</dependency>") && inDependency) {
                 inDependency = false;
-                DependencyItem match = findMatchingItem(recipe.dependencies, currentGroupId, currentArtifactId);
-                if (match == null) {
+
+                // CLAUDE ADIM 3: Reçetedeki doğru listeyle mimari eşleşme sağlama (BOM vs Direct)
+                DependencyItem match;
+                if (inDependencyManagement) {
                     match = findMatchingItem(recipe.dependencyManagement, currentGroupId, currentArtifactId);
+                } else {
+                    match = findMatchingItem(recipe.dependencies, currentGroupId, currentArtifactId);
                 }
 
                 if (match != null) {
@@ -129,7 +143,8 @@ public class DependencyUpdater {
             Files.write(originalPath, updatedLines);
         }
 
-        printServiceReport(service, updatedItems, skippedItems, unchangedItems, warnings, dryRun);
+        // ÇÖZÜM: Parametrelere 'errors' listesi eklendi ve imza hatası giderildi!
+        printServiceReport(service, updatedItems, skippedItems, unchangedItems, warnings, errors, dryRun);
     }
 
     // Metot İmzasına 'List<String> warnings' eklendi ve güvenli if-else kontrolü sağlandı
@@ -145,7 +160,6 @@ public class DependencyUpdater {
             } else if ("non-ca".equalsIgnoreCase(serviceType)) {
                 targetVersion = match.versions.get("nonCa");
             } else {
-                // FR-10 / AC-9: Tip bilinmiyorsa veya geçersizse CA/Non-CA bağımlılığını atla ve logla
                 warnings.add(artifactId + ": servis tipi bilinmedigi icin atlandi (auto-detect basarisiz)");
                 return;
             }
@@ -159,8 +173,12 @@ public class DependencyUpdater {
         } else {
             if (!targetVersion.equals(currentVersion)) {
                 String blockLine = updatedLines.get(versionLineIdx);
-                String indentation = blockLine.substring(0, blockLine.indexOf("<version>"));
-                updatedLines.set(versionLineIdx, indentation + "<version>" + targetVersion + "</version>");
+
+                // MİMARİ DEVRİM (Bug #1 ve #3 Çözümü): Satırı tamamen silmek yerine sadece versiyon etiketini değiştiriyoruz!
+                String oldTag = "<version>" + currentVersion + "</version>";
+                String newTag = "<version>" + targetVersion + "</version>";
+                updatedLines.set(versionLineIdx, blockLine.replace(oldTag, newTag));
+
                 updatedItems.add(artifactId + ": " + currentVersion + " -> " + targetVersion);
             } else {
                 unchangedItems.add(artifactId + ": zaten güncel (" + currentVersion + ")");
@@ -169,7 +187,7 @@ public class DependencyUpdater {
     }
 
     // Sadece başındaki 'private' kaldırıldı, böylece ServiceDetector bu metodu ortak kullanabilecek
-    static String extractTagValue(String line, String tagName) {
+     public static String extractTagValue(String line, String tagName) {
         String openTag = "<" + tagName + ">";
         String closeTag = "</" + tagName + ">";
         if (line.contains(openTag) && line.contains(closeTag)) {
@@ -188,7 +206,7 @@ public class DependencyUpdater {
         return null;
     }
 
-    private static void printServiceReport(MicroService service, List<String> updated, List<String> skipped, List<String> unchanged, List<String> warnings, boolean dryRun) {
+    public static void printServiceReport(MicroService service, List<String> updated, List<String> skipped, List<String> unchanged, List<String> warnings, List<String> errors, boolean dryRun) {
         System.out.println("\n==================================================");
         System.out.println(dryRun ? "         [DRY-RUN] SİMÜLASYON RAPORU" : "         GERÇEK GÜNCELLEME RAPORU");
         System.out.println("==================================================");
@@ -211,6 +229,10 @@ public class DependencyUpdater {
         System.out.println("\nWarnings:");
         if (warnings.isEmpty()) System.out.println("  - None");
         else { for (String s : warnings) System.out.println("  - " + s); }
+
+        System.out.println("\nErrors:");
+        if (errors.isEmpty()) System.out.println("  - None");
+        else { for (String s : errors) System.out.println("  - " + s); }
         System.out.println("==================================================\n");
     }
 }
