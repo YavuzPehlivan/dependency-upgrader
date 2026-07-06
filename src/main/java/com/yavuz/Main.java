@@ -16,10 +16,10 @@ public class Main {
         String serviceMap = null;
         boolean dryRun = false;
 
+        // === ADIM 1: PARAMETRE AYIKLAMA ===
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
                 case "--recipe":
-                    // Eğer kelime '--recipe' ise, bir sonraki kelime dosya yoludur
                     if (i + 1 < args.length) recipePath = args[++i];
                     break;
                 case "--service-path":
@@ -43,19 +43,25 @@ public class Main {
             }
         }
 
+        // === GÜVENLİK VE DOĞRULAMA KONTROLÜ ===
         if (servicePath != null && rootPath != null) {
             System.out.println("\n[KRİTİK HATA]!!! Aynı anda hem --service-path hem de --root-path parametreleri verilemez!");
             System.out.println("Service Path: " + servicePath);
             System.out.println("Root Path: " + rootPath);
             System.out.println("Lütfen tek bir servis güncellemesi için --service-path\n" +
                     "Toplu tarama için ise sadece --root-path parametresini kullanın.");
-            return; // main metodundan çıkış yapar, yani programı burada tamamen sonlandırır!
+            return;
         }
 
-        // === 2. ADIM: RECIPE DOSYASINI OKUMA KONTROLÜ ===
+        // Geniş kapsamlı recipe nesnemiz (Aşağıdaki adımlar da buna erişebilecek)
+        Recipe recipe = null;
+
+        // === 2. ADIM: RECIPE DOSYASINI OKUMA VE DETAYLARI YAZDIRMA ===
         if (recipePath != null) {
             try {
-                Recipe recipe = RecipeParser.parseRecipe(recipePath);
+                // ÇÖZÜM: Baştaki 'Recipe' tip kelimesini sildik, yukarıdaki ana değişkeni dolduruyoruz
+                recipe = RecipeParser.parseRecipe(recipePath);
+
                 System.out.println("\n[BAŞARILI] Recipe dosyası başarıyla okundu!");
                 System.out.println("Recipe Versiyonu: " + recipe.recipeVersion);
 
@@ -78,6 +84,7 @@ public class Main {
                             System.out.println("    * CA Hedefi: " + item.versions.get("ca"));
                             System.out.println("    * Non-CA Hedefi: " + item.versions.get("nonCa"));
                         }
+                        System.out.println("----------------------------------------");
                     }
                 }
 
@@ -104,6 +111,10 @@ public class Main {
                     System.out.println("Servis Adı: " + service.name);
                     System.out.println(" -> Konum: " + service.path);
                     System.out.println(" -> Tespit Edilen Tip: " + service.serviceType.toUpperCase());
+
+                    // === ADIM 5: MOTORU TETİKLE ===
+                    System.out.println(" -> Bağımlılık Güncelleme Analizi:");
+                    com.yavuz.service.DependencyUpdater.updateService(service, recipe, dryRun);
                     System.out.println("----------------------------------------");
                 }
             }
@@ -111,7 +122,7 @@ public class Main {
             System.out.println("[HATA] Servisler taranırken hata oldu: " + e.getMessage());
         }
 
-        // 3. Kodumuzun parametreleri doğru yakalayıp yakalamadığını ekranda görüyoruz
+        // === ADIM 1: PARAMETRE KONTROLÜ (RAPOR) ===
         System.out.println("\n=== [ADIM 1] PARAMETRE KONTROLÜ ===");
         System.out.println("Recipe Path: " + recipePath);
         System.out.println("Service Path: " + servicePath);
