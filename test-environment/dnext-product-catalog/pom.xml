@@ -6,11 +6,11 @@
     <version>2.5.0</version> <!-- NON-CA Servis -->
 
     <dependencies>
-        <!-- Recipe içinde var. Non-CA sürümüne güncellenmeli! (1.0.0) -->
+        <!-- Recipe içinde var. Non-CA sürümüne güncellenmeli! (1.0.1) -->
         <dependency>
             <groupId>com.pia.dnext</groupId>
             <artifactId>state-flow-client</artifactId>
-            <version>0.4.3</version>
+            <version>0.7.8</version>
         </dependency>
 
         <!-- Senaryo 1: Harici kütüphane. Dokunulmamalı! -->

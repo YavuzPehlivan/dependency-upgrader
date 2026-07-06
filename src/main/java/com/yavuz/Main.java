@@ -1,6 +1,5 @@
 package com.yavuz;
 
-import com.yavuz.model.DependencyItem;
 import com.yavuz.model.Recipe;
 import com.yavuz.service.RecipeParser;
 
@@ -43,83 +42,55 @@ public class Main {
             }
         }
 
-        // === GÜVENLİK VE DOĞRULAMA KONTROLÜ ===
+        // Güvenlik Doğrulaması (Fail-Fast)
         if (servicePath != null && rootPath != null) {
             System.out.println("\n[KRİTİK HATA]!!! Aynı anda hem --service-path hem de --root-path parametreleri verilemez!");
-            System.out.println("Service Path: " + servicePath);
-            System.out.println("Root Path: " + rootPath);
-            System.out.println("Lütfen tek bir servis güncellemesi için --service-path\n" +
-                    "Toplu tarama için ise sadece --root-path parametresini kullanın.");
             return;
         }
 
-        // Geniş kapsamlı recipe nesnemiz (Aşağıdaki adımlar da buna erişebilecek)
-        Recipe recipe = null;
+        Recipe recipe;
 
-        // === 2. ADIM: RECIPE DOSYASINI OKUMA VE DETAYLARI YAZDIRMA ===
+        // === ADIM 2: RECIPE DOSYASINI OKUMA ===
         if (recipePath != null) {
             try {
-                // ÇÖZÜM: Baştaki 'Recipe' tip kelimesini sildik, yukarıdaki ana değişkeni dolduruyoruz
                 recipe = RecipeParser.parseRecipe(recipePath);
-
-                System.out.println("\n[BAŞARILI] Recipe dosyası başarıyla okundu!");
-                System.out.println("Recipe Versiyonu: " + recipe.recipeVersion);
-
-                if (recipe.dependencies != null) {
-                    System.out.println("Recipe içindeki toplam dependency sayısı: " + recipe.dependencies.size());
-                    System.out.println("Recipe detaylari:");
-
-                    for (DependencyItem item : recipe.dependencies){
-                        System.out.println("Dependencie (ArtifactId): " + item.artifactId);
-                        System.out.println(" -> Grup (groupId): " + item.groupId);
-
-                        // Senaryo 1: Eğer doğrudan tek bir versiyon varsa
-                        if (item.version != null) {
-                            System.out.println(" -> Hedef Versiyon: " + item.version);
-                        }
-
-                        // Senaryo 2: Eğer CA / Non-CA ayrımı varsa
-                        if (item.versions != null) {
-                            System.out.println(" -> Dinamik Versiyon Yapısı Belirlendi:");
-                            System.out.println("    * CA Hedefi: " + item.versions.get("ca"));
-                            System.out.println("    * Non-CA Hedefi: " + item.versions.get("nonCa"));
-                        }
-                        System.out.println("----------------------------------------");
-                    }
-                }
-
+                System.out.println("\n[BAŞARILI] Recipe dosyası başarıyla okundu: " + recipe.recipeVersion);
             } catch (IOException e) {
-                System.out.println("\n[HATA] Recipe dosyası okunurken bir hata oluştu: " + e.getMessage());
+                System.out.println("\n[KRİTİK HATA] Recipe dosyası okunurken hata: " + e.getMessage());
+                return;
             }
         } else {
-            System.out.println("\n[UYARI] --recipe parametresi verilmediği için dosya okuma adımı atlandı.");
+            System.out.println("\n[UYARI] --recipe parametresi verilmediği için işlem başlatılamıyor.");
+            return;
         }
 
-        // === ADIM 3 & 4: SERVİS TARAMA VE TİP TESPİTİ KONTROLÜ ===
+        // === ADIM 3 & 4: SERVİS TARAMA VE DÖNGÜ ===
         try {
-            // Servisleri diskten tarayıp listeliyoruz
             java.util.List<com.yavuz.model.MicroService> services = com.yavuz.service.ServiceDetector.discoverServices(servicePath, rootPath);
 
-            System.out.println("\n=== [ADIM 3 & 4] BULUNAN SERVİSLER VE TİPLERİ ===");
             if (services.isEmpty()) {
                 System.out.println("Belirtilen konumlarda geçerli bir pom.xml bulunamadı!");
             } else {
                 for (com.yavuz.model.MicroService service : services) {
-                    // Her bir servisin tipini kurallara göre analiz ediyoruz
-                    com.yavuz.service.ServiceDetector.determineServiceType(service, serviceType);
 
-                    System.out.println("Servis Adı: " + service.name);
-                    System.out.println(" -> Konum: " + service.path);
-                    System.out.println(" -> Tespit Edilen Tip: " + service.serviceType.toUpperCase());
+                    // NFR-3 / FR-11: HATA İZOLASYON SİSTEMİ (Bir servis çökerse diğeri devam eder)
+                    try {
+                        com.yavuz.service.ServiceDetector.determineServiceType(service, serviceType);
 
-                    // === ADIM 5: MOTORU TETİKLE ===
-                    System.out.println(" -> Bağımlılık Güncelleme Analizi:");
-                    com.yavuz.service.DependencyUpdater.updateService(service, recipe, dryRun);
-                    System.out.println("----------------------------------------");
+                        // === ADIM 5, 6 & 7: ÇALIŞTIRMA, YEDEKLEME VE RAPORLAMA ===
+                        com.yavuz.service.DependencyUpdater.updateService(service, recipe, dryRun);
+
+                    } catch (Exception e) {
+                        System.out.println("\n==================================================");
+                        System.out.println("[HATA - İZOLE EDİLDİ] Servis İşlenemedi: " + service.name);
+                        System.out.println("Hata Detayı: " + e.getMessage());
+                        System.out.println("Sistem kuralı gereği bir sonraki servise geçiliyor.");
+                        System.out.println("==================================================\n");
+                    }
                 }
             }
         } catch (java.io.IOException e) {
-            System.out.println("[HATA] Servisler taranırken hata oldu: " + e.getMessage());
+            System.out.println("[KRİTİK HATA] Kök dizin taranırken sistem hatası oluştu: " + e.getMessage());
         }
 
         // === ADIM 1: PARAMETRE KONTROLÜ (RAPOR) ===

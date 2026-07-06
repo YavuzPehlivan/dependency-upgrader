@@ -17,7 +17,7 @@
         <dependency>
             <groupId>com.pia.dnext</groupId>
             <artifactId>access-control</artifactId>
-            <version>0.8.5</version>
+            <version>0.5.6</version>
         </dependency>
 
         <!-- Senaryo 1: Başka bir harici kütüphane. Dokunulmamalı! -->
@@ -31,7 +31,7 @@
         <dependency>
             <groupId>com.pia.dnext</groupId>
             <artifactId>state-flow-client</artifactId>
-            <version>0.5.7-ca</version>
+            <version>0.3.4-ca</version>
         </dependency>
     </dependencies>
 </project>
