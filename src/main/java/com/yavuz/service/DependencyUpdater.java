@@ -13,6 +13,8 @@ import java.util.*;
 
 public class DependencyUpdater {
 
+    private static int serviceCounter = 0;
+
     // Metot imzasina 'List<String> errors' eklendi, böylece Main.java'dan gelen hatalari tasiyabilecek
     public static void updateService(MicroService service, Recipe recipe, boolean dryRun, List<String> errors) throws IOException {
         Path originalPath = Paths.get(service.path);
@@ -207,30 +209,34 @@ public class DependencyUpdater {
     }
 
     public static void printServiceReport(MicroService service, List<String> updated, List<String> skipped, List<String> unchanged, List<String> warnings, List<String> errors, boolean dryRun) {
+
+        serviceCounter++;
+
         System.out.println("\n==================================================");
-        System.out.println(dryRun ? "         [DRY-RUN] SİMÜLASYON RAPORU" : "         GERÇEK GÜNCELLEME RAPORU");
+        System.out.println(dryRun ? serviceCounter + ".         [DRY-RUN] SİMÜLASYON RAPORU":
+                serviceCounter + ".         GERÇEK GÜNCELLEME RAPORU");
         System.out.println("==================================================");
         System.out.println("Service Name: " + service.name);
         System.out.println("Service Path: " + service.path);
         System.out.println("Detected Service Type: " + (service.serviceType != null ? service.serviceType.toUpperCase() : "UNKNOWN"));
 
-        System.out.println("\nUpdated Items:");
+        System.out.println("\nUpdated Items: " + updated.size());
         if (updated.isEmpty()) System.out.println("  - None");
         else { for (String s : updated) System.out.println("  - " + s); }
 
-        System.out.println("\nSkipped Items:");
+        System.out.println("\nSkipped Items: " + skipped.size());
         if (skipped.isEmpty()) System.out.println("  - None");
         else { for (String s : skipped) System.out.println("  - " + s); }
 
-        System.out.println("\nUnchanged Items:");
+        System.out.println("\nUnchanged Items: " + unchanged.size());
         if (unchanged.isEmpty()) System.out.println("  - None");
         else { for (String s : unchanged) System.out.println("  - " + s); }
 
-        System.out.println("\nWarnings:");
+        System.out.println("\nWarnings: " + warnings.size());
         if (warnings.isEmpty()) System.out.println("  - None");
         else { for (String s : warnings) System.out.println("  - " + s); }
 
-        System.out.println("\nErrors:");
+        System.out.println("\nErrors: " + errors.size());
         if (errors.isEmpty()) System.out.println("  - None");
         else { for (String s : errors) System.out.println("  - " + s); }
         System.out.println("==================================================\n");

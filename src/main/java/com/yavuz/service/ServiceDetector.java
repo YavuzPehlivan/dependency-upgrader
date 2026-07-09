@@ -35,13 +35,13 @@ public class ServiceDetector {
     }
 
     public static void determineServiceType(MicroService service, String cliType, Recipe recipe) {
-        // 1. Öncelik: CLI parametresi ile doğrudan tip girilmişse (Kural 7.1)[cite: 1]
+        // 1. Öncelik: CLI parametresi ile doğrudan tip girilmişse (Kural 7.1)
         if (cliType != null) {
             service.serviceType = cliType.toLowerCase();
             return;
         }
 
-        // 2. Öncelik: Pom.xml dosyasının içindeki kritik kütüphanelerden akıllı tespit (Kural 7.3)[cite: 1]
+        // 2. Öncelik: Pom.xml dosyasının içindeki kritik kütüphanelerden akıllı tespit (Kural 7.3)
         try {
             List<String> lines = Files.readAllLines(Paths.get(service.path));
             String currentArtifactId = null;

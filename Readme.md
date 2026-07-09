@@ -1,73 +1,73 @@
-# Recipe Based Maven Dependency Upgrade Automation Tool
+# Maven Dependency Upgrader
 
-Bu araç; kurumsal mikroservis mimarilerinde (`pom.xml`) çeyrek dönemlik güvenlik açığı giderme talimatlarını (Recipe YAML) baz alarak bağımlılıkları, parent versiyonlarını ve Maven eklentilerini (plugin) otomatik, güvenli ve dosya formatını bozmadan güncelleyen gelişmiş bir otomasyon motorudur.
+Bu araç; bir reçete (`Recipe`) dosyasının içindeki (`vulnerability-recipe.yaml`) kurallara göre, hedef klasördeki (`test-environment`) tüm mikroservislerin `pom.xml` dosyalarını otomatik olarak günceller.
 
-## 🎯 Öne Çıkan Gelişmiş Özellikler
+Satır bazlı çalıştığı için `pom.xml` dosyalarının orijinal formatını, girintilerini ve yorum satırlarını asla bozmaz.
 
-* **Mimaride BOM ve Bağımlılık Ayrımı (Dependency Management):** `<dependencyManagement>` bloğu ile normal `<dependencies>` alanlarını durum takibiyle (`inDependencyManagement`) birbirinden izole eder; yanlış çapraz eşleşmeleri tamamen önler.
-* **Gelişmiş Hata İzolasyonu (Error Isolation):** Çoklu taramalarda herhangi bir serviste bozuk XML yapısı veya dosya hatası oluşursa uygulama çökmez. Hatayı ilgili servisin raporundaki `Errors:` alanına yazar ve bir sonraki servise güvenle geçer.
-* **Akıllı Servis Tipi Tespiti (Auto-Detect):** Servis tipini belirlerken kurumsal hiyerarşiyi işletir: `CLI Parametresi > Service Map Dosyası (YAML) > Otomatik Tespit`. Bağlam bulunamazsa `UNKNOWN` olarak işaretler ve hassas sürümleri ezmez.
-* **Sağlamlaştırılmış Satır Kontrolü:** Tek satırda yazılmış kırılgan bağımlılık bloklarını sessizce yutmak yerine `Warnings:` listesine ekleyerek raporlar.
-* **Otomatik Yedekleme Mekanizması:** Değişiklik yapılan her başarılı operasyonda, orijinal `pom.xml` dosyasını reçete sürümüne göre `.backup/` dizini altında güvenli bir şekilde arşivler.
-* ** JUnit 5 Birim Testleri:** `@TempDir` mimarisi kullanılarak diske kalıcı yazma hasarı vermeden tüm kritik iş kuralları (AC-1, AC-6, AC-9) otomatik olarak test edilir.
+## Özellikler
 
-## 🛠️ CLI Parametreleri
+* **Etkileşimli Panel:** Parametre girmekle uğraştırmaz. Başlayınca dosyaları kontrol eder, onay (`y/d`) ve çalışma modu sorar.
+* **Property Desteği:** Sürümler doğrudan koda yazılmadıysa, yukarıdaki `<properties>` bloğundaki değişken değerini bulup günceller.
+* **Strict Matching:** Sadece `artifactId` değil, `groupId` kontrolü de yapar; yanlış kütüphaneleri ezmez.
+* **BOM ve Güvenlik Ayrımı:** `<dependencyManagement>` ile normal bağımlılıkları ayırır. Sürümü olmayan (BOM'dan gelen) kütüphanelere zorla sürüm eklemez.
+* **Tek Satır Koruması:** Yan yana yazılmış `<dependency>` bloklarında XML yapısını korur, dosyayı bozmaz.
+* **Yedekleme & Hata İzolasyonu:** Değişiklik yapmadan önce orijinal dosyanın yedeğini alır. Bir serviste hata çıkarsa durmaz, diğerine geçer.
 
-| Parametre | Zorunlu mu? | Açıklama |
-| :--- | :--- | :--- |
-| `--recipe` | **Evet** | Güncelleme kurallarını içeren YAML dosyasının yolu. |
-| `--service-path` | Hayır | Sadece tek bir mikroservis klasörünü hedeflemek için kullanılır. |
-| `--root-path` | Hayır | Altındaki tüm mikroservisleri toplu taramak için kök dizin yolu. |
-| `--service-type` | Hayır | Tüm servislere zorla `ca` veya `non-ca` tipi dayatmak için kullanılır. |
-| `--service-map` | Hayır | Servis adlarını tipleriyle eşleyen harici YAML dosyası (`Services.yaml`). |
-| `--dry-run` | Hayır| Aktif edildiğinde diske yazma yapmaz, sadece simülasyon raporu sunar. |
-
-## 🚀 Çalıştırma ve Test Talimatları
-
-### 1. Birim Testleri Çalıştırma (JUnit 5)
-```bash
-mvn test
-```
-### 2. Projeyi Bağımlılıklarıyla Birlikte Paketleme (Fat-JAR)
+## Çalıştırma (IDE veya Terminal)
+Proje dizininde Recipe ve test-environment klasörünün bulunması yeterlidir. IDE'den doğrudan oynat (Run) butonuna basabilir veya şu komutu kullanabilirsin:
 ```bash
 mvn clean package
+java -jar target/dependency-upgrader-1.0-SNAPSHOT.jar
 ```
 
-### 3. Simülasyon Modunda Çalıştırma (Dry-Run)
-```bash
-java -jar target/dependency-upgrader-1.0-SNAPSHOT.jar --recipe vulnerability-recipe.yaml --root-path test-environment --dry-run
-```
-
-### 4. Gerçek Modda Güncelleme ve Yedekleme Başlatma
-```bash
-java -jar target/dependency-upgrader-1.0-SNAPSHOT.jar --recipe vulnerability-recipe.yaml --root-path test-environment
-```
-
-## 📊 Örnek Konsol Rapor Formatı
+### Konsol Çıktısı Örneği
 ```text
 ==================================================
-         GERÇEK GÜNCELLEME RAPORU
+               Dependency Upgrader                
 ==================================================
-Service Name: dnext-parent-test
-Service Path: test-environment/dnext-parent-test/pom.xml
-Detected Service Type: NON-CA
+[BİLGİ] Sistem bileşenleri kontrol ediliyor...
+[BAŞARILI] Klasörde tek tarif dosyası bulundu, otomatik seçildi: vulnerability-recipe.yaml
+--------------------------------------------------
+    Çalıştırılacak Tarif : Recipe/vulnerability-recipe.yaml
+    Kök Tarama Dizini    : test-environment
+--------------------------------------------------
+Lütfen devam etmek için bir çalışma modu seçin:
+ [y] -> Gerçek Güncelleme Modu (Dosyaları değiştirir, otomatik backup alır)
+ [d] -> Simülasyon (Dry-Run) Modu (Dosyalara dokunmaz, sadece rapor sunar)
+ [Herhangi Başka Bir Tuş] -> İşlemi İptal Et ve Çık
+Seçiminiz: d
 
-Updated Items:
-  - spring-boot-starter-parent: 3.3.0 -> 3.5.0
-  - dnext-common-dependencies: 0.9.0 -> 1.0.0
-  - state-flow-client: 0.4.3 -> 1.0.1
-  - jacoco-maven-plugin: 0.8.11 -> 0.8.12
+[ONAYLANDI] Simülasyon (Dry-Run) modu başlatılıyor... Güvenli analiz.
 
-Skipped Items:
+[SİSTEM] Recipe dosyası başarıyla hafızaya yüklendi: 2026-Q4-vulnerability-fix
+
+==================================================
+1.         [DRY-RUN] SİMÜLASYON RAPORU
+==================================================
+Service Name: dnext-cost-management
+Service Path: test-environment/dnext-cost-management/pom.xml
+Detected Service Type: CA
+
+Updated Items: 0
   - None
 
-Unchanged Items:
-  - None
+Skipped Items: 4
+  - spring-boot-starter-web: present in service but not found in recipe
+  - lombok: present in service but not found in recipe
+  - guava: present in service but not found in recipe
+  - hsqldb: present in service but not found in recipe
 
-Warnings:
-  - None
+Unchanged Items: 5
+  - spring-boot-starter-parent: zaten güncel (1.0.0)
+  - dnext-common-dependencies: zaten güncel (1.0.0-ca)
+  - state-flow-client: zaten güncel (1.0.0-ca)
+  - jacoco-maven-plugin: zaten güncel (1.0.0)
+  - dnext.access-control.version (Property): zaten güncel (1.0.0)
 
-Errors:
+Warnings: 1
+  - Tek satirlik dependency tespit edildi, atlanmis olabilir: <dependency><groupId>org.hsqldb</groupId><artifactId>hsqldb</artifactId><version>2.7.2</version></dependency>
+
+Errors: 0
   - None
 ==================================================
 ```
