@@ -1,0 +1,244 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.pia.orbitant</groupId>
+    <artifactId>shopping-cart-management</artifactId>
+    <packaging>jar</packaging>
+    <name>Shopping Cart Management Service</name>
+    <version>1.29.0</version>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.15</version>
+        <relativePath/>
+    </parent>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.version>3.9.6</maven.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <dnext-common-dependencies.version>4.6.1</dnext-common-dependencies.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
+        <testcontainers-keycloak.version>3.3.1</testcontainers-keycloak.version>
+        <apache-commons-compress.version>1.21</apache-commons-compress.version>
+        <mockito-inline.version>5.2.0</mockito-inline.version>
+        <apt-maven-plugin.version>1.1.3</apt-maven-plugin.version>
+        <swagger-maven-plugin.version>3.1.8</swagger-maven-plugin.version>
+        <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
+        <awaitility.version>4.1.1</awaitility.version>
+        <powermock.version>2.0.9</powermock.version>
+        <sonar.organization>dnext-technology</sonar.organization>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <access-control.version>4.9.0</access-control.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <common-drules.version>2.9.0</common-drules.version>
+        <drules-compatibility-lib.version>1.3.0</drules-compatibility-lib.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>com.pia.orbitant</groupId>
+            <artifactId>common-drules</artifactId>
+            <version>${common-drules.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.pia.orbitant</groupId>
+            <artifactId>common-mongo</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.pia.orbitant.lib</groupId>
+            <artifactId>access-control</artifactId>
+            <version>${access-control.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>annotations</artifactId>
+                    <groupId>org.jetbrains</groupId>
+                </exclusion>
+            </exclusions> <!-- should be latest release -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.dasniko</groupId>
+            <artifactId>testcontainers-keycloak</artifactId>
+            <version>${testcontainers-keycloak.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <artifactId>annotations</artifactId>
+                    <groupId>org.jetbrains</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>commons-io</artifactId>
+                    <groupId>commons-io</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>resteasy-client</artifactId>
+                    <groupId>org.jboss.resteasy</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>resteasy-core</artifactId>
+                    <groupId>org.jboss.resteasy</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>resteasy-core-spi</artifactId>
+                    <groupId>org.jboss.resteasy</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>resteasy-jackson2-provider</artifactId>
+                    <groupId>org.jboss.resteasy</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>kafka</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mongodb</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-core</artifactId>
+            <version>${powermock.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <artifactId>javassist</artifactId>
+                    <groupId>org.javassist</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>objenesis</artifactId>
+                    <groupId>org.objenesis</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.pia.orbitant</groupId>
+            <artifactId>drules-compatibility-lib</artifactId>
+            <version>${drules-compatibility-lib.version}</version>
+        </dependency>
+
+    </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.pia.orbitant</groupId>
+                <artifactId>dnext-common-dependencies</artifactId>
+                <version>${dnext-common-dependencies.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <repositories>
+        <repository>
+            <id>orbitant-nexus-central</id>
+            <url>https://nexus.orbitant.dev/repository/maven-central/</url>
+        </repository>
+        <repository>
+            <id>orbitant-nexus</id>
+            <url>https://nexus.orbitant.dev/repository/orbitant-artifacts-releases/</url>
+        </repository>
+    </repositories>
+
+    <build>
+        <finalName>${project.name}-${project.version}</finalName>
+        <sourceDirectory>src/main/java</sourceDirectory>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>build-info</id>
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.mysema.maven</groupId>
+                <artifactId>apt-maven-plugin</artifactId>
+                <version>1.1.3</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>process</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>target/generated-sources/java</outputDirectory>
+                            <processor>com.querydsl.apt.QuerydslAnnotationProcessor</processor>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>jacoco-initialize</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-site</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
