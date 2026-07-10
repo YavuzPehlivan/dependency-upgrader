@@ -35,13 +35,13 @@ public class ServiceDetector {
     }
 
     public static void determineServiceType(MicroService service, String cliType, Recipe recipe) {
-        // 1. Öncelik: CLI parametresi ile doğrudan tip girilmişse (Kural 7.1)
+        // 1. Öncelik: CLI parametresi ile doğrudan tip girilmişse (Kural 7.1)[cite: 1]
         if (cliType != null) {
             service.serviceType = cliType.toLowerCase();
             return;
         }
 
-        // 2. Öncelik: Pom.xml dosyasının içindeki kritik kütüphanelerden akıllı tespit (Kural 7.3)
+        // 2. Öncelik: Pom.xml dosyasının içindeki kritik kütüphanelerden akıllı tespit (Kural 7.3)[cite: 1]
         try {
             List<String> lines = Files.readAllLines(Paths.get(service.path));
             String currentArtifactId = null;
@@ -78,15 +78,11 @@ public class ServiceDetector {
     }
 
     private static boolean isCaNonCaSplitDependency(Recipe recipe, String artifactId) {
-        if (recipe == null) return false;
-        if (recipe.dependencies != null) {
-            for (DependencyItem item : recipe.dependencies) {
-                if (artifactId.equals(item.artifactId) && item.versions != null) return true;
-            }
-        }
-        if (recipe.dependencyManagement != null) {
-            for (DependencyItem item : recipe.dependencyManagement) {
-                if (artifactId.equals(item.artifactId) && item.versions != null) return true;
+        if (recipe == null || recipe.updates == null) return false;
+        for (DependencyItem item : recipe.updates) {
+            boolean relevantType = "dependency".equals(item.type) || "dependencyManagement".equals(item.type);
+            if (relevantType && artifactId.equals(item.artifactId) && item.versions != null) {
+                return true;
             }
         }
         return false;

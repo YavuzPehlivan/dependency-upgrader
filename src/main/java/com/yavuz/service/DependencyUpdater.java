@@ -75,7 +75,8 @@ public class DependencyUpdater {
 
             if (line.contains("</parent>") && inParent) {
                 inParent = false;
-                DependencyItem match = findMatchingItem(recipe.parentVersions, currentGroupId, currentArtifactId);
+                // YENİ RECIPE YAPISI: recipe.parentVersions yerine recipe.updates + type="parent" filtresi
+                DependencyItem match = findMatchingItem(recipe.updates, "parent", currentGroupId, currentArtifactId);
                 if (match != null) {
                     processMatch(match, currentVersion, versionLineIdx, service.serviceType, updatedLines, propertiesToUpdate, updatedItems, unchangedItems, warnings, currentArtifactId);
                 } else if (currentArtifactId != null) {
@@ -85,12 +86,14 @@ public class DependencyUpdater {
             else if (line.contains("</dependency>") && inDependency) {
                 inDependency = false;
 
-                // CLAUDE ADIM 3: Reçetedeki doğru listeyle mimari eşleşme sağlama (BOM vs Direct)
+                // CLAUDE ADIM 3: Reçetedeki doğru type ile mimari eşleşme sağlama (BOM vs Direct)
+                // YENİ RECIPE YAPISI: recipe.dependencyManagement / recipe.dependencies yerine
+                // tek recipe.updates listesi + type="dependencyManagement" / type="dependency" filtresi
                 DependencyItem match;
                 if (inDependencyManagement) {
-                    match = findMatchingItem(recipe.dependencyManagement, currentGroupId, currentArtifactId);
+                    match = findMatchingItem(recipe.updates, "dependencyManagement", currentGroupId, currentArtifactId);
                 } else {
-                    match = findMatchingItem(recipe.dependencies, currentGroupId, currentArtifactId);
+                    match = findMatchingItem(recipe.updates, "dependency", currentGroupId, currentArtifactId);
                 }
 
                 if (match != null) {
@@ -106,7 +109,8 @@ public class DependencyUpdater {
             }
             else if (line.contains("</plugin>") && inPlugin) {
                 inPlugin = false;
-                DependencyItem match = findMatchingItem(recipe.plugins, currentGroupId, currentArtifactId);
+                // YENİ RECIPE YAPISI: recipe.plugins yerine recipe.updates + type="plugin" filtresi
+                DependencyItem match = findMatchingItem(recipe.updates, "plugin", currentGroupId, currentArtifactId);
                 if (match != null) {
                     processMatch(match, currentVersion, versionLineIdx, service.serviceType, updatedLines, propertiesToUpdate, updatedItems, unchangedItems, warnings, currentArtifactId);
                 } else if (currentArtifactId != null) {
@@ -189,7 +193,7 @@ public class DependencyUpdater {
     }
 
     // Sadece başındaki 'private' kaldırıldı, böylece ServiceDetector bu metodu ortak kullanabilecek
-     public static String extractTagValue(String line, String tagName) {
+    public static String extractTagValue(String line, String tagName) {
         String openTag = "<" + tagName + ">";
         String closeTag = "</" + tagName + ">";
         if (line.contains(openTag) && line.contains(closeTag)) {
@@ -198,10 +202,13 @@ public class DependencyUpdater {
         return null;
     }
 
-    private static DependencyItem findMatchingItem(List<DependencyItem> list, String groupId, String artifactId) {
+    // YENİ RECIPE YAPISI: Artık tek liste (recipe.updates) + type parametresi ile filtreleme yapılıyor.
+    // Eskiden 4 ayrı liste vardı (parentVersions/dependencyManagement/dependencies/plugins),
+    // şimdi hepsi tek listede ve "type" alanı hangi kategoriye ait olduğunu belirtiyor.
+    private static DependencyItem findMatchingItem(List<DependencyItem> list, String type, String groupId, String artifactId) {
         if (list == null || groupId == null || artifactId == null) return null;
         for (DependencyItem item : list) {
-            if (groupId.equals(item.groupId) && artifactId.equals(item.artifactId)) {
+            if (type.equals(item.type) && groupId.equals(item.groupId) && artifactId.equals(item.artifactId)) {
                 return item;
             }
         }
