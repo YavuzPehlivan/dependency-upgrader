@@ -5,8 +5,8 @@ import java.util.List;
 public class Recipe {
 
     public String recipeVersion;
-    public List<DependencyItem> parentVersions;
-    public List<DependencyItem> dependencyManagement;
-    public List<DependencyItem> dependencies;
-    public List<DependencyItem> plugins;
+
+    // Eskiden parentVersions / dependencyManagement / dependencies / plugins
+    // şeklinde 4 ayrı listeydi; artık tek liste + item.type alanı ile ayrım yapılıyor.
+    public List<DependencyItem> updates;
 }
